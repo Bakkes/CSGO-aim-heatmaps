@@ -1,6 +1,7 @@
 #include <sourcemod>
 #include <sdktools>
 #include <vector>
+#include <socket>
 
 public Plugin:info =
 {
@@ -11,13 +12,17 @@ public Plugin:info =
 	url = "reddit.com/u/PascalTheAnalyst"
 };
 
+
+
+
+
 new bool:justKilled[32]=false;
 new Handle:sm_pauseafterkill = INVALID_HANDLE;
 new Handle:sm_offsetX = INVALID_HANDLE;
 new Handle:sm_offsetY = INVALID_HANDLE;
 new Handle:sm_offsetZ = INVALID_HANDLE;
 new Handle:sm_drawLaser = INVALID_HANDLE;
-new String:g_time[64];
+new Handle:socket = INVALID_HANDLE;
 
 public OnPluginStart()
 {
@@ -36,17 +41,10 @@ public Action:StartRecording(client,args)
 	HookEvent("player_death", AccountForPlayerdeath);
 	HookEvent("bullet_impact", Bi);
 	
-	new String:time[64];
-	FormatTime(time, sizeof(time), "%y%m%d_%H%M%S", GetTime());
-	g_time=time;
-	
-	decl String:path[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM,path,PLATFORM_MAX_PATH,"AAD_%s.csv",g_time);
-	new Handle:fileHandle=OpenFile(path,"a");
-	WriteFileLine(fileHandle,"Header");
-	CloseHandle(fileHandle);
-	
-	PrintToServer("recording aim accuracy to AAD_%s.csv.",g_time);
+	// create a new tcp socket
+	socket = SocketCreate(SOCKET_TCP, OnSocketError);
+	// connect the socket
+	SocketConnect(socket, OnSocketConnected, OnSocketReceive, OnSocketDisconnected, "127.0.0.1", 1337)
 }
 
 public Action:StopRecording(client,args)
@@ -54,18 +52,9 @@ public Action:StopRecording(client,args)
 	UnhookEvent("player_death", AccountForPlayerdeath);
 	UnhookEvent("bullet_impact", Bi);
 	
-	new i=0;
-	new String:path[PLATFORM_MAX_PATH];
-	new String:line[128];
-	BuildPath(Path_SM,path,PLATFORM_MAX_PATH,"AAD_%s.csv",g_time);
-	new Handle:fileHandle=OpenFile(path,"r");
-	while(!IsEndOfFile(fileHandle)&&ReadFileLine(fileHandle,line,sizeof(line)))
-	{
-		i=i+1;
-	}
-	CloseHandle(fileHandle);
+	CloseHandle(socket);
 	
-	PrintToServer("completed AAD_%s.csv. %i shots recorded.",g_time,i);	
+	PrintToServer("completed recording.");	
 }
 
 public AccountForPlayerdeath(Handle:event,const String:name[],bool:dontBroadcast) //This function disables the recording of aim accuracy data for 'sm_pauseafterkill'(default 0.5) seconds after the client killed someone. This avoids recording of "after spray".
@@ -202,15 +191,37 @@ public Bi(Handle:event,const String:name[],bool:dontBroadcast)
 				res[0]=GetVectorDotProduct(i,a2);
 				res[1]=GetVectorDotProduct(i,a3);
 				
-				if(SquareRoot(res[0]*res[0]+res[1]*res[1])<250){
-					
-					decl String:path[PLATFORM_MAX_PATH];
-					BuildPath(Path_SM,path,PLATFORM_MAX_PATH,"AAD_%s.csv",g_time);
-					new Handle:fileHandle=OpenFile(path,"a");
-					WriteFileLine(fileHandle,"%i\t%f\t%f",userid,res[0],res[1]);
-					CloseHandle(fileHandle);
+				if(SquareRoot(res[0]*res[0]+res[1]*res[1])<250){	
+					decl String:requestStr[100];
+					Format(requestStr, sizeof(requestStr),"%i\t%f\t%f",userid,res[0],res[1]);
+					SocketSend(socket, requestStr);
 				}
 			}
 		}
 	}
+}
+
+
+public OnSocketConnected(Handle:socket, any:arg) {
+	//connected
+}
+
+public OnSocketReceive(Handle:socket, String:receiveData[], const dataSize, any:hFile) {
+	// receive another chunk and write it to <modfolder>/dl.htm
+	// we could strip the http response header here, but for example's sake we'll leave it in
+
+	//WriteFileString(hFile, receiveData, false);
+}
+
+public OnSocketDisconnected(Handle:socket, any:hFile) {
+	// Connection: close advises the webserver to close the connection when the transfer is finished
+	// we're done here
+	CloseHandle(socket);
+}
+
+public OnSocketError(Handle:socket, const errorType, const errorNum, any:hFile) {
+	// a socket error occured
+
+	LogError("socket error %d (errno %d)", errorType, errorNum);
+	CloseHandle(socket);
 }
