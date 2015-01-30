@@ -194,6 +194,7 @@ public Bi(Handle:event,const String:name[],bool:dontBroadcast)
 				if(SquareRoot(res[0]*res[0]+res[1]*res[1])<250){	
 					decl String:requestStr[100];
 					Format(requestStr, sizeof(requestStr),"%i\t%f\t%f",userid,res[0],res[1]);
+					PrintToServer("Sending data");
 					SocketSend(socket, requestStr);
 				}
 			}
@@ -204,6 +205,7 @@ public Bi(Handle:event,const String:name[],bool:dontBroadcast)
 
 public OnSocketConnected(Handle:socket, any:arg) {
 	//connected
+	PrintToServer("Connected to server");
 }
 
 public OnSocketReceive(Handle:socket, String:receiveData[], const dataSize, any:hFile) {
@@ -216,6 +218,7 @@ public OnSocketReceive(Handle:socket, String:receiveData[], const dataSize, any:
 public OnSocketDisconnected(Handle:socket, any:hFile) {
 	// Connection: close advises the webserver to close the connection when the transfer is finished
 	// we're done here
+	PrintToServer("Socket disconnected");
 	CloseHandle(socket);
 }
 
