@@ -43,6 +43,12 @@ public Action:StartRecording(client,args)
 	
 	// create a new tcp socket
 	socket = SocketCreate(SOCKET_TCP, OnSocketError);
+	
+	//is this stuff really necessary?
+	new Handle:hFile = OpenFile("dl.htm", "wb");
+	// pass the file handle to the callbacks
+	SocketSetArg(socket, hFile);
+	
 	// connect the socket
 	SocketConnect(socket, OnSocketConnected, OnSocketReceive, OnSocketDisconnected, "127.0.0.1", 1337)
 }
@@ -224,7 +230,7 @@ public OnSocketDisconnected(Handle:socket, any:hFile) {
 
 public OnSocketError(Handle:socket, const errorType, const errorNum, any:hFile) {
 	// a socket error occured
-
+	PrintToServer("Socket error");
 	LogError("socket error %d (errno %d)", errorType, errorNum);
 	CloseHandle(socket);
 }
