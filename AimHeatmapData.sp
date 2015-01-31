@@ -44,13 +44,8 @@ public Action:StartRecording(client,args)
 	// create a new tcp socket
 	socket = SocketCreate(SOCKET_TCP, OnSocketError);
 	
-	//is this stuff really necessary?
-	new Handle:hFile = OpenFile("dl.htm", "wb");
-	// pass the file handle to the callbacks
-	SocketSetArg(socket, hFile);
-	
 	// connect the socket
-	SocketConnect(socket, OnSocketConnected, OnSocketReceive, OnSocketDisconnected, "127.0.0.1", 1337)
+	SocketConnect(socket, OnSocketConnected, OnSocketReceive, OnSocketDisconnected, "127.0.0.1", 1337);
 }
 
 public Action:StopRecording(client,args)
@@ -199,7 +194,7 @@ public Bi(Handle:event,const String:name[],bool:dontBroadcast)
 				
 				if(SquareRoot(res[0]*res[0]+res[1]*res[1])<250){	
 					decl String:requestStr[100];
-					Format(requestStr, sizeof(requestStr),"%i\t%f\t%f",userid,res[0],res[1]);
+					Format(requestStr, sizeof(requestStr),"%i\t%f\t%f\n",userid,res[0],res[1]);
 					PrintToServer("Sending data");
 					SocketSend(socket, requestStr);
 				}

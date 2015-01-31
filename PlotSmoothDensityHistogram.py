@@ -32,14 +32,21 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
         ax = fig.add_subplot(111)
         plt.ion()
         plt.show()
+        buffer = ""
         print "Now we wait"
         while True:
-            data = self.request.recv(1024).strip().split("\t")
-            m0.append(float(data[0]))
-            m1.append(float(data[1]))
-            m2.append(float(data[2]))
-            
-            print "Got data: %s, %s, %s" % (m0,m1,m2)
+            buffer += self.request.recv(4096)
+            while "\n" in buffer:
+                idx = buffer.find("\n")
+                txt = buffer[:idx]
+                buffer = buffer[idx + 1:]
+                data = txt.split("\t")
+                print data
+                m0.append(float(data[0]))
+                m1.append(float(data[1]))
+                m2.append(float(data[2]))
+                
+                #print "Got data: %s, %s, %s" % (m0,m1,m2)
             
             if len(m1)<2:
                continue   
@@ -63,6 +70,7 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
                 ax.cla()
             except LinAlgError:
                  pass #ignore this, will fix itself
+                
     
 
 if __name__ == "__main__":
